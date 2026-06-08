@@ -1,0 +1,8 @@
+services:
+  mprg-bot:
+    build: .
+    container_name: mprg-bot
+    env_file: .env           # .env から環境変数を読み込む（イメージには含まれない）
+    restart: unless-stopped  # クラッシュ時・再起動時に自動復旧
+    volumes:
+      - ./logs:/app/logs     # ログ永続化（任意）

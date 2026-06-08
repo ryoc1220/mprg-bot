@@ -1,0 +1,31 @@
+# 機密情報（絶対にリポジトリに含めない）
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# 一時ファイル
+tmp_paper_process/
+*.zip
+*.pdf
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# テスト・開発用スクリプト
+test_*.py
+
+# ログ
+logs/
+*.log
+
+# venv
+venv/
+.venv/
+env/

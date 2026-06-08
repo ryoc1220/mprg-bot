@@ -1,0 +1,6 @@
+slack-bolt==1.28.0
+slack-sdk==3.41.0
+google-genai==1.47.0
+pydantic==2.12.5
+python-dotenv==1.2.1
+requests==2.32.5
