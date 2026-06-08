@@ -21,7 +21,7 @@ Slack (登録完了通知 + X投稿用下書きテキスト)
 | 項目 | 説明 |
 |------|------|
 | **Slack App** | Bot Token (`xoxb-...`) + App-Level Token (`xapp-...`) |
-| **Google Gemini API Key** | [Google AI Studio](https://aistudio.google.com/) で取得 |
+| **LLM API Key** | **Google Gemini** ([Google AI Studio](https://aistudio.google.com/)) または **OpenAI** の API キー |
 | **WordPress** | JWT Authentication プラグイン + Code Snippets プラグイン必須 |
 | **Docker** | ローカル実行でも可（Python 3.9以上） |
 
@@ -51,8 +51,15 @@ cp .env.example .env
 SLACK_BOT_TOKEN="xoxb-..."
 SLACK_APP_TOKEN="xapp-..."
 
-# Google Gemini
+# LLM Provider 設定 ("gemini" または "openai")
+LLM_PROVIDER="gemini"
+
+# Google Gemini (LLM_PROVIDER="gemini" の場合必須)
 GEMINI_API_KEY="..."
+
+# OpenAI (LLM_PROVIDER="openai" の場合必須)
+OPENAI_API_KEY="..."
+OPENAI_MODEL="gpt-4o-mini"
 
 # WordPress
 WP_SITE_URL="https://mprg.jp/wp"
@@ -155,7 +162,7 @@ docker compose down
    ```
 
 3. ボットが自動で：
-   - Gemini で論文情報をパース
+   - 設定した LLM (Gemini または OpenAI) で論文情報をパース
    - WordPress に下書きを作成
    - PDFをサーバーにアップロード（`/data/MPRG/{区分}_group/{slug}.pdf`）
    - Slack に登録完了通知 + **X投稿用下書きテキスト** を送信

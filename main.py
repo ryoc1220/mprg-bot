@@ -7,6 +7,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from google import genai
+from openai import OpenAI
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -15,7 +16,10 @@ load_dotenv()
 SLACK_BOT_TOKEN  = os.environ.get("SLACK_BOT_TOKEN")
 SLACK_APP_TOKEN  = os.environ.get("SLACK_APP_TOKEN")
 
+LLM_PROVIDER     = os.environ.get("LLM_PROVIDER", "gemini").lower()
 GEMINI_API_KEY   = os.environ.get("GEMINI_API_KEY")
+OPENAI_API_KEY   = os.environ.get("OPENAI_API_KEY")
+OPENAI_MODEL     = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 
 WP_SITE_URL      = os.environ.get("WP_SITE_URL")
 WP_USERNAME      = os.environ.get("WP_USERNAME")
@@ -26,9 +30,15 @@ WEB_KAHO_SLACK_ID = os.environ.get("WEB_KAHO_SLACK_ID")
 
 slack_app = App(token=SLACK_BOT_TOKEN)
 
-gemini_client = genai.Client(
-    api_key=GEMINI_API_KEY
-)
+gemini_client = None
+openai_client = None
+
+if LLM_PROVIDER == "openai":
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    gemini_client = genai.Client(
+        api_key=GEMINI_API_KEY
+    )
 
 class DetailedPaperInfo(BaseModel):
 
@@ -174,16 +184,17 @@ def handle_mentions(event, say, client):
 
         return
 
+    provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "Gemini"
     say(
-        text="📥 zipファイルを受信しました．解析中です…",
+        text=f"📥 zipファイルを受信しました．{provider_name}で解析中です…",
         blocks=[
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
                     "text": (
-                        "📥 *zip ファイルを受信しました*\n"
-                        "🔍 Gemini で解析中です．少々お待ちください…"
+                        f"📥 *zip ファイルを受信しました*\n"
+                        f"🔍 {provider_name} で解析中です．少々お待ちください…"
                     )
                 }
             }
@@ -304,7 +315,7 @@ def handle_mentions(event, say, client):
             return
 
         """
-        Gemini
+        LLM 解析
         """
         system_prompt = (
             "研究室論文登録用JSONを生成してください．\n"
@@ -319,19 +330,35 @@ def handle_mentions(event, say, client):
             "  《poster, oral, journalなど発表形式・論文種別の小文字を入れてはいけない》"
         )
 
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=txt_content,
-            config=genai.types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                response_schema=DetailedPaperInfo
+        if LLM_PROVIDER == "openai":
+            if not OPENAI_API_KEY:
+                raise ValueError("LLM_PROVIDERが 'openai' に設定されていますが，OPENAI_API_KEYが設定されていません．")
+            
+            completion = openai_client.beta.chat.completions.parse(
+                model=OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": txt_content}
+                ],
+                response_format=DetailedPaperInfo
             )
-        )
-
-        data = json.loads(
-            response.text
-        )
+            data = completion.choices[0].message.parsed.model_dump()
+        else:
+            if not GEMINI_API_KEY:
+                raise ValueError("LLM_PROVIDERが 'gemini' に設定されていますが，GEMINI_API_KEYが設定されていません．")
+                
+            response = gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=txt_content,
+                config=genai.types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    response_mime_type="application/json",
+                    response_schema=DetailedPaperInfo
+                )
+            )
+            data = json.loads(
+                response.text
+            )
 
         # ── スラッグをPython側で確定的に生成（Geminiの区分文字誤りを完全防止） ──
         CATEGORY_MAP = {
