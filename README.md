@@ -32,7 +32,7 @@ Slack (登録完了通知 + X投稿用下書きテキスト)
 ### 1. リポジトリをクローン
 
 ```bash
-git clone https://github.com/<your-org>/mprg-bot.git
+git clone https://github.com/ryoc1220/mprg-bot.git
 cd mprg-bot
 ```
 
